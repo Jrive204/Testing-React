@@ -1,49 +1,112 @@
 import React from "react";
-import { render, fireEvent, wait } from "@testing-library/react";
-import StarWarsCharacters from "./StarWarsCharacters";
+import { render, fireEvent, wait, getByText } from "@testing-library/react";
 import { getData as mockGetData } from "../api";
-import { Provider } from "react-redux";
-import Enzyme, { mount } from 'enzyme';
-import { reducer } from "../reducers";
-import EnzymeAdapter from 'enzyme-adapter-react-16';
-import { createStore } from 'redux';
 
-Enzyme.configure({ adapter: new EnzymeAdapter() });
+import { Provider, useDispatch } from "react-redux";
+import { mount, shallow } from "enzyme";
+import configureMockStore from "redux-mock-store";
+import App from "../App";
+import { configure } from "enzyme";
+import Adapter from "enzyme-adapter-react-16";
+import StarWarsCharacters from "./StarWarsCharacters";
+import logger from "redux-logger";
 
-describe('<StarWarsCharacters /> unit test', () => {
-    const getWrapper = (mockStore = createStore(reducer, { url: "https://swapi.co/api/people" })) => mount(
-        <Provider store={mockStore}>
-      <StarWarsCharacters/>
-    </Provider>
-  );
-  
-  
-  jest.mock("../api");
+configure({ adapter: new Adapter() });
 
+const mockStore = configureMockStore([logger]);
 
-test("render the Starwars names correctly", async () => {
-  //   mockGetData.mockReturnValueOnce(true);
+jest.mock("../api");
 
-  const { getByText } = getWrapper();
+describe("App", () => {
+  test("Should find components", () => {
+    const store = mockStore({
+      url: "https://swapi.co/api/people"
+    });
+    const wrapper = mount(
+      <Provider store={store}>
+        <App />
+      </Provider>
+    );
+    expect(wrapper.find("StarWarsCharacters").length).toEqual(1);
+    expect(wrapper.find("DropDown").length).toEqual(1);
+  });
+});
 
-  getByText(/Previous/i);
-  getByText(/next/i);
+describe("starwarsChar buttons", () => {
+  test("Should find button text", () => {
+    const store = mockStore({
+      url: "https://swapi.co/api/people"
+    });
+    const { getByText } = render(
+      <Provider store={store}>
+        <StarWarsCharacters />
+      </Provider>
+    );
 
-  wait();
+    getByText(/Previous/i);
+    getByText(/next/i);
+  });
 });
 
 test("testing api call", () => {
-  render(<StarWarsCharacters />);
-  //   const nextButton = getByText(/next/i);
-  //   fireEvent.click(nextButton);
+  const store = mockStore({
+    url: "https://swapi.co/api/people"
+  });
+  render(
+    <Provider store={store}>
+      <StarWarsCharacters />
+    </Provider>
+  );
+
   mockGetData();
 
   expect(mockGetData).toHaveBeenCalledTimes(1);
 });
 
-// test("is button firing?", () => {
-//   const { getByText } = render(<StarWarsCharacters />);
+it("async call", async () => {
+  const store = mockStore({
+    url: "https://swapi.co/api/people"
+  });
+  const { getByText } = render(
+    <Provider store={store}>
+      <StarWarsCharacters />
+    </Provider>
+  );
+  // const data = {
+  //   0: {
+  //     name: "Luke Skywalker",
+  //     height: "172"
+  //   },
+  //   1: {
+  //     name: "C-3PO",
+  //     height: "167"
+  //   },
+  //   2: {
+  //     name: "R2-D2",
+  //     height: "96"
+  //   }
+  // };
+  // mockGetData(data);
+  // mockGetData.mockResolvedValue("le");
 
-//   const nextButton = getByText(/next/i);
-//   fireEvent.click(nextButton);
-// })
+  // expect(mockGetData).toHaveBeenCalledTimes(1);
+  // expect(mockGetData).toHaveBeenCalledWith(data);
+
+  // await wait(() => expect(getByText(/r2-d2/i)));
+});
+
+it("Dispatch call", async () => {
+  const store = mockStore({
+    url: "https://swapi.co/api/people"
+  });
+  render(
+    <Provider store={store}>
+      <StarWarsCharacters />
+    </Provider>
+  );
+
+  const actions = store.dispatch({ type: "PEOPLE" });
+
+  const expectedPayload = { type: "PEOPLE" };
+  expect(actions).toEqual(expectedPayload);
+});
